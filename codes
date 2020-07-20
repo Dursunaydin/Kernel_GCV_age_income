@@ -1,0 +1,52 @@
+library(rdd)
+library(psych)
+library(SemiPar)
+#-----------trace of a matrix-------
+trace <- function(A) {
+  n <- dim(A)[1] # get dimension of matrix
+  tr <- 0 # initialize trace value
+  
+  # Loop over the diagonal elements of the supplied matrix and add the element to tr
+  for (k in 1:n) {
+    l <- A[k,k]
+    tr <- tr + l
+  }
+  return(tr[[1]])
+}
+#---------------GCV-----------------
+gcvfunc<-function(y,H){
+  n<-length(y)
+  score<-(1/n)*(norm((diag(n)-H)*y)^2)/(((1/n)*trace(diag(n)-H))^2)
+  return(score)
+}
+n<-100
+z <- 0
+y <- 0
+gcvscore<-0
+data("age.income")
+z<-age.income$age
+y<-age.income$log.income
+plot(y)
+dn<-2*n
+bw<-seq(1, 5, length.out = dn)    #You can change the interval as you wish. It is up to researcher
+for (i in 1:dn){
+  W<-kernelwts(z, 0,bw[i], kernel = "gaussian")
+  gcvscore[i]<-gcvfunc(y,W)
+}
+for (j in 1:dn){
+  if (gcvscore[j]==min(gcvscore)){
+    bws<-bw[j]
+  }
+}
+fitks<-ksmooth(z,y,'normal',bandwidth=bws)
+fitted_values<-fitks$y
+
+plot(z,y,ylim=c(min(y),max(y)),pch=19,ylab="y & kernel smoothing fit")
+par(new=TRUE)
+plot(z,fitted_values,ylim=c(min(y),max(y)),type="l",col="red",lwd=3,ylab="y & kernel smoothing fit")
+grid()
+legend(20, 15, legend=c("data point","Kernel Sm. fit"),
+       col=c("black", "red"), pch=c(19,NA,NA),lty=c(NA,1,1), cex=0.8)
+
+#Taken from the paper: Aydın, D. and Yılmaz, E. (2018). Modified estimators in semiparametric regression models with right-censored data
+#Journal of Computation and Simulation, 88(8): 1470-1498
